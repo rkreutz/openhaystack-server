@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - 'main'
+    tags:
+      - '*.*.*'
 
 jobs:
   docker:
@@ -23,5 +25,5 @@ jobs:
         with:
           push: true
           tags: |
-            rkreutz/ohs:latest
+            rkreutz/ohs:${{ contains(github.ref, 'main') && 'latest' || github.ref }}
           platforms: linux/amd64,linux/arm64
