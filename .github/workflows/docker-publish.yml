@@ -24,7 +24,8 @@ jobs:
         id: generate-tag
         shell: bash
         run: |
-          REF=${${{ github.ref }}/refs\/*\/}
+          RAW_REF='${{ github.ref }}'
+          REF=${RAW_REF/refs\/*\/}
           if [[ $REF == 'main' ]]; then
             TAG='latest'
           else
