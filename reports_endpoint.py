@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 
 import json
-import sys
-import os
 import requests
-from datetime import datetime
-import time
 import config
-from http.client import HTTPConnection
-import base64
-from collections import OrderedDict
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -47,43 +40,15 @@ class ServerHandler(BaseHTTPRequestHandler):
             content_len = int(self.headers.get('content-length'))
 
         post_body = self.rfile.read(content_len)
-
         logger.debug('Getting with post: ' + str(post_body))
-        body = json.loads(post_body)
-        if "days" in body:
-            days = body['days']
-        else:
-            days = 7
-        logger.debug('Querying for ' + str(days) + ' days')
-        unixEpoch = int(datetime.now().strftime('%s'))
-        startdate = unixEpoch - (60 * 60 * 24 * days)
-
-        dt_object = datetime.fromtimestamp(startdate)
-
-        # Date is always 1, because it has no effect
-        data = {"search": [
-            {"startDate": 1, "ids": list(body['ids'])}]}
 
         try:
-            r = requests.post("https://gateway.icloud.com/acsnservice/fetch",  auth=getAuth(regenerate=False, second_factor='sms'),
+            r = requests.post("https://gateway.icloud.com/acsnservice/fetch",  auth=getAuth(),
                               headers=pypush_gsa_icloud.generate_anisette_headers(),
-                              json=data)
+                              json=json.loads(post_body))
             logger.debug('Return from fetch service:')
             logger.debug(r.content.decode())
             result = json.loads(r.content.decode())
-            results = result['results']
-
-            newResults = OrderedDict()
-
-            for idx, entry in enumerate(results):
-                data = base64.b64decode(entry['payload'])
-                timestamp = int.from_bytes(data[0:4], 'big') + 978307200
-                if (timestamp > startdate):
-                    newResults[timestamp] = entry
-
-            sorted_map = OrderedDict(sorted(newResults.items(), reverse=True))
-
-            result["results"] = list(sorted_map.values())
             self.send_response(200)
             # send response headers
             self.addCORSHeaders()
@@ -100,18 +65,12 @@ class ServerHandler(BaseHTTPRequestHandler):
             logger.error("Unknown error occured {e}", exc_info=True)
             self.send_response(501)
 
-    def getCurrentTimes(self):
-        clientTime = datetime.utcnow().replace(microsecond=0).isoformat() + 'Z'
-        clientTimestamp = int(datetime.now().strftime('%s'))
-        return clientTime, time.tzname[1], clientTimestamp
-
-
-def getAuth(regenerate=False, second_factor='sms'):
+def getAuth(second_factor='sms'):
     if config.getAuth():
-        j = json.load(config.getAuth())
+        j = config.getAuth()
     else:
         j = apple_cryptography.getAuth(second_factor=second_factor)
-    return (j['dsid'], j['searchPartyToken'])
+    return (j['dsid'], j.get('searchpartytoken', j.get('searchPartyToken', '')))
 
 
 if __name__ == "__main__":
