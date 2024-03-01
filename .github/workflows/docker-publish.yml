@@ -20,10 +20,23 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Generate DockerHub Tag
+        id: generate-tag
+        shell: bash
+        run: |
+          REF=${${{ github.ref }}/refs\/*\/}
+          if [[ $REF == 'main' ]]; then
+            TAG='latest'
+          else
+            TAG=$REF
+          fi
+
+          echo "Will push images to rkreutz/ohs:$TAG"
+          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
           push: true
           tags: |
-            rkreutz/ohs:${{ contains(github.ref, 'main') && 'latest' || github.ref }}
+            rkreutz/ohs:${{ steps.generate-tag.outputs.TAG }}
           platforms: linux/amd64,linux/arm64
