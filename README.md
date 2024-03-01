@@ -3,7 +3,7 @@
 [![Docker Hub](https://img.shields.io/badge/Docker%20Hub-Info-blue)](https://hub.docker.com/r/rkreutz/ohs)
 [![Docker Pulls](https://img.shields.io/docker/pulls/rkreutz/ohs)](https://hub.docker.com/r/rkreutz/ohs)
 
-This project is a modification of [macless-haystack](https://github.com/dchristl/macless-haystack)'s server implementation, for easier setup.
+This project is a modification of [macless-haystack](https://github.com/dchristl/macless-haystack)'s server implementation, for easier setup and compatibility with [openhaystack](https://github.com/seemoo-lab/openhaystack) macOS app.
 
 ## Table of Contents
 
@@ -39,7 +39,7 @@ This project uses [Dadoum/anisette-v3-server](https://github.com/Dadoum/anisette
 First we need to run it skipping HTTP binding, so that we can validate that initial configuration has worked:
 
 ```bash
-docker run -p 6969:6969 --volume anisette-v3_data:/home/Alcoholic/.config/anisette-v3 dadoum/anisette-v3-server --skip-server-startup
+docker run --volume anisette-v3_data:/home/Alcoholic/.config/anisette-v3 dadoum/anisette-v3-server --skip-server-startup
 ```
 
 Once that step is successful we can proceed and actually start the anisette server:
@@ -87,11 +87,17 @@ docker restart ohs
 
 Server should be up and running again on the same port.
 
+We can now try fetching some records from it:
+
+```bash
+curl -X POST 0.0.0.0:6176 -d '{"search":[{"ids":["<key ID>"],"startDate":"<unix timestamp milliseconds>","endDate":"<unix timestamp milliseconds>"}]}' # returns a list of reported locations for the provided key ID
+```
+
 # FAQ
 
 #### Where and what data is stored on the container?
 
-The container stores the authentication headers from iCloud authentication (`dsid` and `searchPartyToken`) under `/app/config/config.ini`.
+The container stores the authentication headers from iCloud authentication (`dsid` and `searchPartyToken`) under `/app/config/config.ini` and Apple ID credentials if provided as env variables.
 
 #### How can I see the logs?
 
@@ -152,7 +158,7 @@ docker rm -f ohs
 docker run -it -d --restart unless-stopped --name ohs -p 6176:6176 --network ohs-network rkreutz/ohs
 ```
 
-#### How can I reset everything and start over? How can i completely uninstall Macless Haystack?
+#### How can I reset everything and start over? How can i completely uninstall OpenHaystack Server?
 
 You can start completely from scratch by deleting the container and the data. After that, you can begin the guide from the beginning:
 
