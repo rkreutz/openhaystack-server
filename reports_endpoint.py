@@ -6,8 +6,6 @@ import config
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from register import apple_cryptography, pypush_gsa_icloud
-
 import logging
 logger = logging.getLogger()
 
@@ -44,7 +42,7 @@ class ServerHandler(BaseHTTPRequestHandler):
 
         try:
             r = requests.post("https://gateway.icloud.com/acsnservice/fetch",  auth=getAuth(),
-                              headers=pypush_gsa_icloud.generate_anisette_headers(),
+                              headers=config.getAnisetteHeaders(),
                               json=json.loads(post_body))
             logger.debug('Return from fetch service:')
             logger.debug(r.content.decode())
@@ -57,27 +55,16 @@ class ServerHandler(BaseHTTPRequestHandler):
             # send the body of the response
             responseBody = json.dumps(result)
             self.wfile.write(responseBody.encode())
-        except requests.exceptions.ConnectTimeout:
-            logger.error("Timeout to " + config.getAnisetteServer() +
-                         ", is your anisette running and accepting Connections?")
-            self.send_response(504)
         except Exception as e:
             logger.error("Unknown error occured {e}", exc_info=True)
             self.send_response(501)
 
 def getAuth(second_factor='sms'):
-    if config.getAuth():
-        j = config.getAuth()
-    else:
-        j = apple_cryptography.getAuth(second_factor=second_factor)
+    j = config.getAuth()
     return (j['dsid'], j.get('searchpartytoken', j.get('searchPartyToken', '')))
 
 
 if __name__ == "__main__":
-    if not config.getAuth():
-        logging.info(f'No auth-token found.')
-        apple_cryptography.registerDevice()
-
     Handler = ServerHandler
     httpd = HTTPServer(('0.0.0.0', config.getPort()), Handler)
     logger.info("serving at port " + str(config.getPort()))

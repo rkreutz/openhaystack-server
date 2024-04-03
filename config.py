@@ -2,6 +2,8 @@ import logging
 import os
 import configparser
 import json
+from datetime import datetime
+import locale
 
 config = configparser.ConfigParser()
 
@@ -13,11 +15,10 @@ read = config.read(getConfigPath() + '/config.ini')
 if not read:
     config['Settings'] = {
         'anisette_url': os.getenv('ANISETTE_URL', 'http://anisette:6969'),
-        'appleid_email': os.getenv('APPLEID_EMAIL', ''),
-        'appleid_pwd': os.getenv('APPLEID_PWD', ''),
         'loglevel': os.getenv('LOG_LEVEL', 'INFO')
     }
     config['Auth'] = {}
+    config['Anisette'] = {}
 
     try:
         os.mkdir(getConfigPath())
@@ -30,14 +31,19 @@ if not read:
 def getAnisetteServer():
     return config.get('Settings', 'anisette_url', fallback='http://anisette:6969')
 
+def getAnisetteHeaders():
+    headers = dict(config.items['Anisette'])
+    if headers:
+        headers["X-Apple-I-Client-Time"] = datetime.now(datetime.UTC).replace(microsecond=0).isoformat() + "Z"
+        headers["X-Apple-I-TimeZone"] = str(datetime.now(datetime.UTC).astimezone().tzinfo)
+        headers["loc"] = locale.getdefaultlocale()[0] or "en_US"
+        headers["X-Apple-Locale"] = locale.getdefaultlocale()[0] or "en_US"
+        return headers
+    else:
+        return headers
+
 def getPort():
     return 6176
-
-def getUser():
-    return config.get('Settings', 'appleid_email', fallback=None)
-
-def getPass():
-    return config.get('Settings', 'appleid_pwd', fallback=None)
 
 def getLogLevel():
     logLevel = config.get('Settings', 'loglevel', fallback='INFO')
