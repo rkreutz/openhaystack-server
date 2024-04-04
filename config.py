@@ -32,10 +32,10 @@ def getAnisetteServer():
     return config.get('Settings', 'anisette_url', fallback='http://anisette:6969')
 
 def getAnisetteHeaders():
-    headers = dict(config.items['Anisette'])
+    headers = dict(config.items('Anisette'))
     if headers:
-        headers["X-Apple-I-Client-Time"] = datetime.now(datetime.UTC).replace(microsecond=0).isoformat() + "Z"
-        headers["X-Apple-I-TimeZone"] = str(datetime.now(datetime.UTC).astimezone().tzinfo)
+        headers["X-Apple-I-Client-Time"] = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+        headers["X-Apple-I-TimeZone"] = str(datetime.utcnow().astimezone().tzinfo)
         headers["loc"] = locale.getdefaultlocale()[0] or "en_US"
         headers["X-Apple-Locale"] = locale.getdefaultlocale()[0] or "en_US"
         return headers
