@@ -1,24 +1,18 @@
 #!/usr/bin/env python
 
-import os
-import glob
-import datetime
-import argparse
-import base64
-import json
 import hashlib
-import codecs
-import struct
-import requests
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.backends import default_backend
-import sqlite3
-import sys
-from .pypush_gsa_icloud import icloud_login_mobileme, generate_anisette_headers
-
-import config
+import json
 import logging
+import os
+import struct
+import sys
+import config
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher
+
+from .pypush_gsa_icloud import icloud_login_mobileme
+
 logger = logging.getLogger()
 
 
@@ -41,29 +35,39 @@ def decode_tag(data):
     return {'lat': latitude, 'lon': longitude, 'conf': confidence, 'status': status}
 
 
-def getAuth(second_factor='sms'):
-    mobileme = icloud_login_mobileme(
-        username=config.getUser(), password=config.getPass(), second_factor=second_factor)
+def getAuth(regenerate=False):
+    if config.getAuth() and not regenerate:
+        j = config.getAuth()
+    else:
+        logger.info('Trying to login')
+        mobileme = icloud_login_mobileme(
+            username=config.getUser(), password=config.getPass())
 
-    logger.debug('Answer from icloud login')
-    logger.debug(mobileme)
-    status = mobileme['delegates']['com.apple.mobileme']['status']
-    if status == 0:
-        j = {'dsid': mobileme['dsid'], 'searchPartyToken': mobileme['delegates']
-                ['com.apple.mobileme']['service-data']['tokens']['searchPartyToken']}
-        config.setAuth(j)
+        logger.debug('Answer from icloud login')
+        logger.debug(mobileme)
+        status = mobileme['delegates']['com.apple.mobileme']['status']
+        if status == 0:
+            j = {'dsid': mobileme['dsid'], 'searchPartyToken': mobileme['delegates']
+                 ['com.apple.mobileme']['service-data']['tokens']['searchPartyToken']}
+            config.setAuth(j)
+
+        else:
+            msg = mobileme['delegates']['com.apple.mobileme']['status-message']
+            logger.error('Invalid status: ' + str(status))
+            logger.error('Error message: ' + msg)
+            if 'blocking' in msg:
+                logger.error(
+                    'It seems your account score is not high enough. Log in to https://appleid.apple.com/ and add your credit card (nothing will be charged) or additional data to increase it.')
+            logger.error('Unable to proceed, program will be terminated.')
+
+            sys.exit()
+    if 'searchPartyToken' in j:
         return (j['dsid'], j['searchPartyToken'])
     else:
-        msg = mobileme['delegates']['com.apple.mobileme']['status-message']
-        logger.error('Invalid status: ' + str(status))
-        logger.error('Error message: ' + msg)
-        if 'blocking' in msg:
-            logger.error(
-                'It seems your account score is not high enough. Log in to https://appleid.apple.com/ and add your credit card (nothing will be charged) or additional data to increase it.')
-        logger.error('Unable to proceed, program will be terminated.')
+        return (j['dsid'], j['searchpartytoken'])
 
-        sys.exit()
 
 def registerDevice():
+
     logger.info(f'Trying to register new device.')
-    getAuth(second_factor='trusted_device' 'sms')
+    getAuth(regenerate=True)

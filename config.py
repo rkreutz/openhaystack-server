@@ -34,10 +34,10 @@ def getPort():
     return 6176
 
 def getUser():
-    return config.get('Settings', 'appleid_email', fallback=None)
+    return config.get('Settings', 'appleid_email', fallback='')
 
 def getPass():
-    return config.get('Settings', 'appleid_pwd', fallback=None)
+    return config.get('Settings', 'appleid_pwd', fallback='')
 
 def getLogLevel():
     logLevel = config.get('Settings', 'loglevel', fallback='INFO')

@@ -65,12 +65,8 @@ class ServerHandler(BaseHTTPRequestHandler):
             logger.error("Unknown error occured {e}", exc_info=True)
             self.send_response(501)
 
-def getAuth(second_factor='sms'):
-    if config.getAuth():
-        j = config.getAuth()
-    else:
-        j = apple_cryptography.getAuth(second_factor=second_factor)
-    return (j['dsid'], j.get('searchpartytoken', j.get('searchPartyToken', '')))
+def getAuth(regenerate=False):
+    return apple_cryptography.getAuth(regenerate=regenerate)
 
 
 if __name__ == "__main__":
